@@ -81,25 +81,38 @@ export const useChatHistory = () => {
   }, [user, settings.storeHistory]);
 
 
-  const saveChat = useCallback(async (chatToSave: Omit<Chat, 'timestamp'> & { timestamp?: number }, isNewChat: boolean) => {
+  const saveChat = useCallback(async (chatToSave: Omit<Chat, 'timestamp' | 'id'> & { id?: string, timestamp?: number }, isNewChat: boolean): Promise<string | undefined> => {
     if (!user || !settings.storeHistory) return;
 
-    const { id, ...chatData } = chatToSave;
-    const chatDocRef = doc(db, 'users', user.uid, 'chats', id);
+    let chatId = chatToSave.id;
+
+    if (isNewChat || !chatId) { // Generate new ID if it's a new chat or no ID is provided
+      chatId = doc(collection(db, 'users', user.uid, 'chats')).id;
+    }
+
+    if (!chatId) {
+      console.error("Failed to generate chat ID.");
+      return undefined;
+    }
+
+    const chatDocRef = doc(db, 'users', user.uid, 'chats', chatId);
     
     try {
       await setDoc(chatDocRef, {
-        ...chatData,
-        timestamp: Timestamp.fromMillis(chatToSave.timestamp || Date.now())
+        ...chatToSave,
+        timestamp: Timestamp.fromMillis(chatToSave.timestamp || Date.now()),
+        id: chatId // Ensure the ID is explicitly set in the document
       }, { merge: true });
 
-      // Increment the prompt count only when a new message is added
-      if (isNewChat || chatToSave.messages.length > (chats.find(c => c.id === id)?.messages.length || 0)) {
+      // Increment the prompt count only when a new message is added,
+      // or if it's a brand new chat (which implies a first message)
+      if (isNewChat || chatToSave.messages.length > (chats.find(c => c.id === chatId)?.messages.length || 0)) {
         await incrementPromptCount(user.uid);
       }
-
+      return chatId; // Return the ID of the saved chat
     } catch (error) {
       console.error('Failed to save chat history to Firestore', error);
+      return undefined;
     }
   }, [user, settings.storeHistory, chats]);
 
