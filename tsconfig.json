@@ -23,6 +23,6 @@
     },
     "types": ["@types/uuid"]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/types"],
   "exclude": ["node_modules"]
 }

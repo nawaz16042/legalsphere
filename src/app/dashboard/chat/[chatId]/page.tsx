@@ -598,8 +598,7 @@ function ChatPageContent({ chatId }: { chatId: string }) {
 
 
 export default function ChatPage({ params }: { params: { chatId: string } }) {
-  // This is now the recommended way to access params in Next.js App Router.
-  const { chatId } = React.use(params);
+  const { chatId } = params;
 
   // Use a key to force re-mounting when the chatId changes. This is a robust way to reset state.
   return (
