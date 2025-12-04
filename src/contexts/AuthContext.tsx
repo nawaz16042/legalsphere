@@ -29,81 +29,91 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  // Directly initialize auth to ensure it's available early
-  const auth = getAuth(app);
+  const [authInstance, setAuthInstance] = useState<Auth | null>(null); // Use a distinct name for the instance
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const firebaseAuth = getAuth(app);
+    setAuthInstance(firebaseAuth);
+
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       setUser(user);
       setLoading(false);
     });
 
     // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, [auth]); // Depend on auth to ensure subscription is correct
+  }, []); // Empty dependency array means this runs once on mount
 
-
+  // Memoize functions, ensuring they only update when authInstance changes
   const login = useCallback(async (email: string, pass: string) => {
-    // No need for if (!auth) check here as auth is always initialized
-    try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-        if (!userCredential.user.emailVerified) {
-            await signOut(auth);
-            throw new Error("Please verify your email before logging in.");
-        }
-        router.push('/dashboard');
-    } catch (error: any) {
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-            throw new Error("Invalid email or password. Please try again.");
-        }
-        throw error;
+    if (!authInstance) {
+      throw new Error("Auth service is not initialized.");
     }
-  }, [auth, router]);
+    try {
+      const userCredential = await signInWithEmailAndPassword(authInstance, email, pass);
+      if (!userCredential.user.emailVerified) {
+        await signOut(authInstance);
+        throw new Error("Please verify your email before logging in.");
+      }
+      router.push('/dashboard');
+    } catch (error: any) {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        throw new Error("Invalid email or password. Please try again.");
+      }
+      throw error;
+    }
+  }, [authInstance, router]);
 
   const signup = useCallback(async (email: string, pass: string, profileData: UserProfileData) => {
-    // No need for if (!auth) check here as auth is always initialized
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+    if (!authInstance) {
+      throw new Error("Auth service is not initialized.");
+    }
+    const userCredential = await createUserWithEmailAndPassword(authInstance, email, pass);
     
-    const user = userCredential.user;
-    if (user) {
-      const userDocRef = doc(db, 'users', user.uid);
+    const newUser = userCredential.user;
+    if (newUser) {
+      const userDocRef = doc(db, 'users', newUser.uid);
       await setDoc(userDocRef, {
-        uid: user.uid,
-        email: user.email,
+        uid: newUser.uid,
+        email: newUser.email,
         ...profileData,
         createdAt: new Date(),
       });
     }
 
     await sendEmailVerification(userCredential.user);
-    await signOut(auth);
-  }, [auth]);
+    await signOut(authInstance);
+  }, [authInstance]);
 
   const logout = useCallback(async () => {
-    // No need for if (!auth) check here as auth is always initialized
-    await signOut(auth);
+    if (!authInstance) {
+      throw new Error("Auth service is not initialized.");
+    }
+    await signOut(authInstance);
     router.push('/login');
-  }, [router, auth]);
+  }, [router, authInstance]);
 
   const changePassword = useCallback(async (currentPass: string, newPass: string) => {
-    if (!user?.email) {
-        throw new Error("You must be logged in to change your password.");
+    if (!authInstance || !user?.email || !user) {
+      throw new Error("You must be logged in to change your password.");
     }
     
     const credential = EmailAuthProvider.credential(user.email, currentPass);
     await reauthenticateWithCredential(user, credential);
     
     await updatePassword(user, newPass);
-  }, [user, auth]);
+  }, [user, authInstance]);
 
   const sendPasswordReset = useCallback(async (email: string) => {
-    // No need for if (!auth) check here as auth is always initialized
-    await sendPasswordResetEmail(auth, email);
-  }, [auth]);
+    if (!authInstance) {
+      throw new Error("Auth service is not initialized.");
+    }
+    await sendPasswordResetEmail(authInstance, email);
+  }, [authInstance]);
 
   const reauthenticateAndDeleteUser = useCallback(async (password: string) => {
-    if (!user?.email) {
+    if (!authInstance || !user?.email || !user) {
       throw new Error("You must be logged in to delete your account.");
     }
     const credential = EmailAuthProvider.credential(user.email, password);
@@ -121,7 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await deleteUser(user);
     
     router.push('/login');
-  }, [user, auth, router]);
+  }, [user, authInstance, router]);
 
   const value = { user, loading, login, signup, logout, changePassword, sendPasswordReset, reauthenticateAndDeleteUser };
 
