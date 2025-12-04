@@ -33,20 +33,26 @@ const SourceSchema = z.object({
 
 const LegalQueryChatbotOutputSchema = z.object({
   answer: z.string().describe('The answer to the user query, formatted in Markdown.'),
-  sentiment: z.string().describe("The user's sentiment (e.g., neutral, curious, anxious, frustrated)."),
-  sources: z.array(SourceSchema).describe('A list of sources and citations for the answer.'),
+  sentiment: z.string().optional().describe("The user's sentiment (e.g., neutral, curious, anxious, frustrated)."),
+  sources: z.array(SourceSchema).optional().describe('A list of sources and citations for the answer.'),
 });
 export type LegalQueryChatbotOutput = z.infer<typeof LegalQueryChatbotOutputSchema>;
 
 export async function legalQueryChatbot(input: LegalQueryChatbotInput): Promise<LegalQueryChatbotOutput> {
-  // Combine the new query with the history to get a better context for retrieval.
-  const fullConversationQuery = (input.history ?? [])
-    .filter(m => m.role === 'user')
-    .map(m => m.content)
-    .join('\n') + `\n${input.query}`;
+ try {
+    const fullConversationQuery = (input.history ?? [])
+      .filter(m => m.role === 'user')
+      .map(m => m.content)
+      .join('\n') + `\n${input.query}`;
 
-  const relevantArticles = findRelevantArticles(fullConversationQuery);
-  return legalQueryChatbotFlow({...input, relevantArticles});
+    const relevantArticles = findRelevantArticles(fullConversationQuery);
+    return await legalQueryChatbotFlow({...input, relevantArticles});
+  } catch (error) {
+    console.error(`Fatal error in legalQueryChatbot: ${error}`);
+    return {
+      answer: "I apologize, but I've encountered a critical error and cannot process your request. The issue has been logged. Please try again later.",
+    };
+  }
 }
 
 const LegalQueryChatbotPromptInputSchema = LegalQueryChatbotInputSchema.extend({
@@ -68,7 +74,7 @@ const prompt = ai.definePrompt({
 
 You are a helpful and empathetic legal expert specializing in all aspects of Indian law, including constitutional law, statutory acts (like the Motor Vehicles Act, Consumer Protection Act, etc.), and general legal procedures.
 
-Your primary goal is to provide clear, accurate, and accessible legal information in the requested language.
+Your primary goal is to provide clear, accurate, and accessible legal information in the requested language, **formatted as a JSON object** that strictly follows the schema provided in the instructions.
 
 **Instructions:**
 
@@ -124,6 +130,9 @@ const legalQueryChatbotFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('AI model returned an empty output.');
+    }
+    return output;
   }
 );
