@@ -72,6 +72,8 @@ const prompt = ai.definePrompt({
   prompt: `
 **CRITICAL INSTRUCTION: Your entire response MUST be in the language specified: {{#if language}}{{language}}{{else}}en{{/if}}**
 
+**CRITICAL INSTRUCTION: Your entire response MUST be a JSON object that strictly follows the LegalQueryChatbotOutputSchema. Wrap the JSON in a markdown code block (\`\`\`json...\`\`\`).**
+
 You are a helpful and empathetic legal expert specializing in all aspects of Indian law, including constitutional law, statutory acts (like the Motor Vehicles Act, Consumer Protection Act, etc.), and general legal procedures.
 
 Your primary goal is to provide clear, accurate, and accessible legal information in the requested language, **formatted as a JSON object** that strictly follows the schema provided in the instructions.
@@ -133,6 +135,7 @@ const legalQueryChatbotFlow = ai.defineFlow(
     if (!output) {
       throw new Error('AI model returned an empty output.');
     }
+    // Output is already parsed as LegalQueryChatbotOutput due to outputSchema in definePrompt
     return output;
   }
 );
