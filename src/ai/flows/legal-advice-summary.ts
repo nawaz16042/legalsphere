@@ -10,7 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const LegalAdviceSummaryInputSchema = z.object({
   advice: z.string().describe('The legal advice provided by the chatbot.'),
