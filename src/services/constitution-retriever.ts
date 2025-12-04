@@ -39,7 +39,7 @@ export function findRelevantArticles(query: string): ConstitutionArticle[] {
       }
     });
 
-    return { article, score };
+    return { article: { ...article, url: "https://legislative.gov.in/constitution-of-india/" }, score };
   });
 
   // Filter out articles with a score of 0 and sort by score in descending order
