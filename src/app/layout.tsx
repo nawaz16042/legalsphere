@@ -9,12 +9,18 @@ import { SettingsProvider } from '@/contexts/SettingsContext';
 import { FramerMotionProvider } from '@/contexts/FramerMotionContext';
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
-import { useAuth } from '@/hooks/useAuth'; // Import useAuth
+import dynamic from 'next/dynamic'; // Import dynamic
 
 export const metadata: Metadata = {
   title: 'LegalSphere',
   description: 'AI-powered legal assistance for Indian law.',
 };
+
+// Dynamically import ClientLayoutWrapper with ssr: false
+const DynamicClientLayoutWrapper = dynamic(() => import('@/components/ClientLayoutWrapper'), {
+  ssr: false,
+  loading: () => <div>Loading authentication...</div>, // Optional: A loading state while client component loads
+});
 
 export default function RootLayout({
   children,
@@ -42,7 +48,8 @@ export default function RootLayout({
             <SettingsProvider>
               <AuthProvider>
                 <FramerMotionProvider>
-                  <AuthConditionalRenderer>{children}</AuthConditionalRenderer>
+                  {/* Use the dynamically imported wrapper */}
+                  <DynamicClientLayoutWrapper>{children}</DynamicClientLayoutWrapper>
                 </FramerMotionProvider>
                 <Toaster />
               </AuthProvider>
@@ -54,16 +61,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
-
-// New component to handle conditional rendering based on AuthProvider's loading state
-function AuthConditionalRenderer({ children }: { children: React.ReactNode }) {
-  const { loading } = useAuth();
-
-  if (loading) {
-    // You can replace this with a proper loading spinner or skeleton component
-    return <div>Loading authentication...</div>;
-  }
-
-  return <>{children}</>;
 }
