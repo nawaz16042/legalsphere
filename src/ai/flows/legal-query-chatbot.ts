@@ -62,6 +62,7 @@ const prompt = ai.definePrompt({
   name: 'legalQueryChatbotPrompt',
   input: {schema: LegalQueryChatbotPromptInputSchema},
   output: {schema: LegalQueryChatbotOutputSchema},
+  model: 'googleai/gemini-1.5-flash',
   prompt: `
 **CRITICAL INSTRUCTION: Your entire response MUST be in the language specified: {{#if language}}{{language}}{{else}}en{{/if}}**
 
