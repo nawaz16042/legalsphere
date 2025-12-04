@@ -9,6 +9,7 @@ import { SettingsProvider } from '@/contexts/SettingsContext';
 import { FramerMotionProvider } from '@/contexts/FramerMotionContext';
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 export const metadata: Metadata = {
   title: 'LegalSphere',
@@ -41,7 +42,7 @@ export default function RootLayout({
             <SettingsProvider>
               <AuthProvider>
                 <FramerMotionProvider>
-                  {children}
+                  <AuthConditionalRenderer>{children}</AuthConditionalRenderer>
                 </FramerMotionProvider>
                 <Toaster />
               </AuthProvider>
@@ -53,4 +54,16 @@ export default function RootLayout({
       </body>
     </html>
   );
+}
+
+// New component to handle conditional rendering based on AuthProvider's loading state
+function AuthConditionalRenderer({ children }: { children: React.ReactNode }) {
+  const { loading } = useAuth();
+
+  if (loading) {
+    // You can replace this with a proper loading spinner or skeleton component
+    return <div>Loading authentication...</div>;
+  }
+
+  return <>{children}</>;
 }
