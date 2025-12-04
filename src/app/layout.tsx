@@ -9,18 +9,12 @@ import { SettingsProvider } from '@/contexts/SettingsContext';
 import { FramerMotionProvider } from '@/contexts/FramerMotionContext';
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
-import dynamic from 'next/dynamic'; // Import dynamic
+import ClientLayoutWrapper from '@/components/ClientLayoutWrapper'; // Directly import the Client Component
 
 export const metadata: Metadata = {
   title: 'LegalSphere',
   description: 'AI-powered legal assistance for Indian law.',
 };
-
-// Dynamically import ClientLayoutWrapper with ssr: false
-const DynamicClientLayoutWrapper = dynamic(() => import('@/components/ClientLayoutWrapper'), {
-  ssr: false,
-  loading: () => <div>Loading authentication...</div>, // Optional: A loading state while client component loads
-});
 
 export default function RootLayout({
   children,
@@ -48,8 +42,8 @@ export default function RootLayout({
             <SettingsProvider>
               <AuthProvider>
                 <FramerMotionProvider>
-                  {/* Use the dynamically imported wrapper */}
-                  <DynamicClientLayoutWrapper>{children}</DynamicClientLayoutWrapper>
+                  {/* Use the ClientLayoutWrapper directly */}
+                  <ClientLayoutWrapper>{children}</ClientLayoutWrapper>
                 </FramerMotionProvider>
                 <Toaster />
               </AuthProvider>
