@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {googleAI} from '@genkit-ai/googleai';
-import {z} from 'genkit';
+import {z} from 'zod';
 import wav from 'wav';
 
 const TextToSpeechInputSchema = z.object({
