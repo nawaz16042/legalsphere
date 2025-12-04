@@ -96,10 +96,23 @@ export const useChatHistory = () => {
     }
 
     const chatDocRef = doc(db, 'users', user.uid, 'chats', chatId);
+
+    // Sanitize messages to remove undefined fields before saving
+    const sanitizedMessages = chatToSave.messages.map(message => {
+      const newMessage: Message = { role: message.role, content: message.content };
+      if (message.sentiment !== undefined) {
+        newMessage.sentiment = message.sentiment;
+      }
+      if (message.sources !== undefined && message.sources.length > 0) {
+        newMessage.sources = message.sources;
+      }
+      return newMessage;
+    });
     
     try {
       await setDoc(chatDocRef, {
         ...chatToSave,
+        messages: sanitizedMessages,
         timestamp: Timestamp.fromMillis(chatToSave.timestamp || Date.now()),
         id: chatId // Ensure the ID is explicitly set in the document
       }, { merge: true });
